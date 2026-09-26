@@ -331,7 +331,7 @@ public class GhostModule extends BaseModule {
     private Response serveGhostPage(IHTTPSession session) {
         StringBuilder html = new StringBuilder(getHeader(session.getUri()));
         html.append("<div class=\"back-btn-container\">");
-        html.append("<a href=\"/\" class=\"btn-back\">&#8592; Back to Terminal</a>");
+        html.append("<a href=\"/terminal\" class=\"btn-back\">&#8592; Back to Terminal</a>");
         html.append("</div>");
         
         html.append("<div class=\"card\">");
@@ -532,7 +532,7 @@ public class GhostModule extends BaseModule {
 
         html.append("<div>");
         html.append("<div class=\"info-label\" style=\"font-size: 0.7rem; color: #888;\">ANIMATION_STYLE</div>");
-        html.append("<select id=\"toast-anim\" style=\"width: 100%; background: #000; border: 1px solid rgba(255,255,0,0.3); color: #fff; padding: 8px; border-radius: 6px; outline: none; font-family: monospace;\">");
+        html.append("<select id=\"toast-anim\" style=\"width: 100%; background: rgba(4, 8, 12, 0.62); backdrop-filter: blur(5px); border: 1px solid rgba(255,255,0,0.3); color: #fff; padding: 8px; border-radius: 6px; outline: none; font-family: monospace;\">");
         html.append("<option value=\"scroll\">SCROLL_HORIZONTAL</option>");
         html.append("<option value=\"pop\">POP_IN_OUT</option>");
         html.append("<option value=\"static\">STATIC_FADE</option>");
@@ -621,7 +621,7 @@ public class GhostModule extends BaseModule {
                     float py1 = Float.parseFloat(params.get("py1"));
                     float px2 = Float.parseFloat(params.get("px2"));
                     float py2 = Float.parseFloat(params.get("py2"));
-                    int d = Integer.parseInt(params.get("d"));
+                    int d = params.containsKey("d") ? Integer.parseInt(params.get("d")) : 300;
                     int x1 = (int) (px1 * ghost.getScreenWidth() / 100);
                     int y1 = (int) (py1 * ghost.getScreenHeight() / 100);
                     int x2 = (int) (px2 * ghost.getScreenWidth() / 100);
